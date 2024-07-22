@@ -1,0 +1,70 @@
+---
+title: "ChinaEconomy"
+output: html_document
+date: "2024-07-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)  # to read excel
+library(tidyverse)
+library(lubridate) 
+library(ggplot2)
+library(hrbrthemes)  # for theme of figures
+library(svglite)  # to save high quality figures
+```
+
+```{r}
+## read data
+data_fixedasset <- read_excel("4_FixedAsset.xlsx")
+  
+  
+```
+
+```{r}
+first_column_1 = data_fixedasset[,1:1]
+first_row_1 = 10
+last_row_1 = which(first_column_1=="数据来源：东方财富Choice数据") - 3
+data_1 = data_fixedasset[first_row_1:last_row_1,1:5]
+colnames(data_1) <- c("Time", "Fixed_Asset", "Equipment", "Building", "Others")
+
+data_1 <- data_1 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(Fixed_Asset = as.numeric(Fixed_Asset)) %>%
+  mutate(Equipment = as.numeric(Equipment)) %>%
+  mutate(Building = as.numeric(Building)) %>%
+  mutate(Others = as.numeric(Others)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+  # 切记要把所有数据改成numeric形式，要不然后面画图，ggplot识别不了
+
+# plot using basic
+plot(data_1$Time, data_1$Fixed_Asset ,
+     cex = 0.9,type = "l" ,xaxt = "n"  )
+axis(1,
+     data_1$Time,
+     format(data_1$Time, "%m-%Y"))
+
+# plot using ggplot2
+figure_1 <- ggplot( 
+  data = data_1,
+  aes(x=Time)
+  ) +
+  geom_line(aes(y=Fixed_Asset, colour="Fixed_Asset")) +
+  geom_line(aes(y=Equipment, colour="Equipment")) +
+  geom_line(aes(y=Building, colour="Building")) +
+  geom_line(aes(y=Others, colour="Others")) +
+  # geom_point(shape=21, color="black", fill="#69b3a2", size=2) +
+  scale_colour_manual("", 
+                      breaks = c("Fixed_Asset", "Equipment", "Building", "Others"),
+                      values = c("red", "lightgreen", "yellowgreen", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  labs(x = "Date", y = "Growth rate (%)", title = "Growth rate of fixed asset investment")
+figure_1
+
+ggsave(file="4_FixedAsset/figure_1.svg", plot=figure_1, width=10, height=8)
+
+
+
+```
+
