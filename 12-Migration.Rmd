@@ -1,4 +1,4 @@
-# Applications
+# Migration {#Migration}
 
 Some _significant_ applications are demonstrated in this chapter.
 

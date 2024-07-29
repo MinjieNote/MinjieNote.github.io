@@ -1,0 +1,520 @@
+# GDP {#GDP}
+
+
+```{r setup, include=FALSE}
+# options(knitr.duplicate.label = "allow")
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)  # to read excel
+library(tidyverse)
+library(lubridate) 
+library(ggplot2)
+library(hrbrthemes)  # for theme of figures
+library(svglite)  # to save high quality figures
+library(reshape2)  # 画直方图
+library(RColorBrewer)  # 画直方图，颜色
+
+
+```
+
+GDP data is published quarterly by National Bureau of Statistics of China. NBS announces the absolute value and growth rate of cumulative GDP and the current quarter GDP. 
+
+Usually, we don't care about absolute values. The reasons are: 1. Absolute value of China's quarterly GDP has obvious seasonality, quarterly GDP increased quarter by quarter. It may result from Spring Festival in the first quarter and crops ripening in the second half of the year. 2. Before 2015, GDP used the cumulative accounting method, the calculated current quarter GDP may not be accurate. 
+
+Sequential growth rate is more timely than year-on-year growth rate, but we usually don’t use it. Although NBS released quarterly GDP quarter-on-quarter growth rate after 2011, the time interval is too short.
+
+Therefore, we tend to use the **year-on-year growth rate of quarterly and cumulative constant GDP**. We can compare the difference between published value and institutional forecasts, historical data, and overseas countries. 
+
+
+```{r include=FALSE}
+## read data
+data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+  
+```
+
+```{r somePlot, echo=FALSE}
+# figure 1
+first_column_1 = data_GDP[,1:1]
+first_row_1 = 10
+last_row_1 = which(first_column_1=="数据来源：东方财富Choice数据") - 3
+data_1 = data_GDP[first_row_1:last_row_1,1:3]
+colnames(data_1) <- c("Time", "Growth_rate_of_quarterly_GDP", "Growth_rate_of_cumulative_GDP")
+
+data_1 <- data_1 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(Growth_rate_of_quarterly_GDP = as.numeric(Growth_rate_of_quarterly_GDP)) %>%
+  mutate(Growth_rate_of_cumulative_GDP = as.numeric(Growth_rate_of_cumulative_GDP)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+  # 切记要把所有数据改成numeric形式，要不然后面画图，ggplot识别不了
+
+figure_1 <- ggplot( 
+  data = data_1,
+  aes(x=Time)
+  ) +
+  geom_line(aes(y=Growth_rate_of_quarterly_GDP, colour="Growth_rate_of_quarterly_GDP")) +
+  geom_line(aes(y=Growth_rate_of_cumulative_GDP, colour="Growth_rate_of_cumulative_GDP")) +
+  scale_colour_manual("", 
+                      breaks = c("Growth_rate_of_quarterly_GDP", "Growth_rate_of_cumulative_GDP"),
+                      values = c("darkred", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "Growth rate (%)", title = "Figure: Growth rate of GDP")
+
+figure_1
+
+
+```
+
+Growth rate of cumulative GDP is less volatile than that of quarterly GDP. The extremes in the chart look the same, because they happened to occur in the first quarter.
+
+## Production Method
+
+In practice, we focus on two methods to calculate GDP, namely the production method and the expenditure method. **Production method** GDP is the sum of the added value of different industries, which can indicate the change of industrial structure. **Expenditure method** GDP is composed of consumption, investment and exports, we can observe changes in economic demand from it.
+
+First, let’s look at the proportion of the added value of three major industries in GDP. In the long run, the proportion of the tertiary industry continues to rise. By the end of 2023, the proportion of GDP of the primary industry, the secondary industry and the tertiary industry calculated at constant prices is respectively.
+
+
+```{r somePlot2, echo=FALSE}
+# figure 2 堆积直方图
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_2 = data_GDP[,5:5]
+first_row_2 = 10
+last_row_2 = which(first_column_2 == "数据来源：东方财富Choice数据") - 3
+data_2 = data_GDP[first_row_2:last_row_2,5:8]
+colnames(data_2) <- c("Time", "primary_industry", "secondary_industry", "tertiary_industry")
+
+data_2 <- data_2 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(primary_industry = as.numeric(primary_industry)) %>%
+  mutate(secondary_industry = as.numeric(secondary_industry)) %>%
+  mutate(tertiary_industry = as.numeric(tertiary_industry)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+  # 切记要把所有数据改成numeric形式，要不然后面画图，ggplot识别不了
+
+data_2 <- melt(data_2,id.vars='Time')
+
+figure_2 <- ggplot(data=data_2, aes(Time,value,fill=variable))+
+  geom_bar(stat="identity",position="stack", color="black")+
+  scale_fill_manual(values=c("darkred", "darkblue", "darkgreen"))+
+  labs(x = "Year",y = "Percentage", title = "Figure: Three industries in GDP")+
+  theme_minimal() +
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")
+
+figure_2
+
+```
+
+We are more concerned with short-term trends, that is, the short-term changes in three industries. NBS does not publish quarterly adjusted GDP for different industries, so we can observe the year-on-year growth rate of constant GDP of the three industries.
+
+```{r somePlot3, echo=FALSE}
+# figure 3
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_3 = data_GDP[,10:10]
+first_row_3 = 10
+last_row_3 = which(first_column_3=="数据来源：东方财富Choice数据") - 3
+data_3 = data_GDP[first_row_3:last_row_3,10:13]
+colnames(data_3) <- c("Time", "primary_industry", "secondary_industry", "tertiary_industry")
+
+data_3 <- data_3 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(primary_industry = as.numeric(primary_industry)) %>%
+  mutate(secondary_industry = as.numeric(secondary_industry)) %>%
+  mutate(tertiary_industry = as.numeric(tertiary_industry)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+
+figure_3 <- ggplot( 
+  data = data_3,
+  aes(x=Time)
+  ) +
+  geom_line(aes(y=primary_industry, colour="primary_industry")) +
+  geom_line(aes(y=secondary_industry, colour="secondary_industry")) +
+  geom_line(aes(y=tertiary_industry, colour="tertiary_industry")) +
+  scale_colour_manual("", 
+                      breaks = c("primary_industry", "secondary_industry", "tertiary_industry"),
+                      values = c("darkred", "orange", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "Growth rate (%)", title = "Figure: Growth rate of three industries in GDP")
+
+figure_3
+
+```
+
+
+Another short-term indicator is the pull effect of the three industries on GDP growth. Here, "Pulling effect = Industrial growth rate * Industrial added value /GDP added value". The sum of the pulling effect of the three industries is equal to the year-on-year growth rate of GDP.
+
+```{r somePlot4, echo=FALSE}
+# figure 4
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_4 = data_GDP[,15:15]
+first_row_4 = 10
+last_row_4 = which(first_column_4 == "数据来源：东方财富Choice数据") - 3
+data_4 = data_GDP[first_row_4:last_row_4,15:18]
+colnames(data_4) <- c("Time", "primary_industry", "secondary_industry", "tertiary_industry")
+
+data_4 <- data_4 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(primary_industry = as.numeric(primary_industry)) %>%
+  mutate(secondary_industry = as.numeric(secondary_industry)) %>%
+  mutate(tertiary_industry = as.numeric(tertiary_industry)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+
+figure_4 <- ggplot( 
+  data = data_4,
+  aes(x=Time)
+  ) +
+  geom_line(aes(y=primary_industry, colour="primary_industry")) +
+  geom_line(aes(y=secondary_industry, colour="secondary_industry")) +
+  geom_line(aes(y=tertiary_industry, colour="tertiary_industry")) +
+  scale_colour_manual("", 
+                      breaks = c("primary_industry", "secondary_industry", "tertiary_industry"),
+                      values = c("darkred", "orange", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "Pulling effect (%)", title = "Figure: Pulling effect of three industries in GDP")
+
+figure_4
+
+```
+
+
+
+Further, we need some supplementary indicators to help judge the trend of GDP.
+Volatility of primary industry’s constant price GDP is little, and the main change comes from the price. The trend of the year-on-year current price GDP of the primary industry and the year-on-year GDP deflator is consistent. One exception is that in the first quarter of 2020, under the COVID-19 epidemic, constant price GDP fell sharply, while the GDP deflator rose sharply.
+
+```{r somePlot5, echo=FALSE}
+# figure 5
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_5 = data_GDP[,20:20]
+first_row_5 = 10
+last_row_5 = which(first_column_5 == "数据来源：东方财富Choice数据") - 3
+data_5 = data_GDP[first_row_5:last_row_5,20:22]
+colnames(data_5) <- c("Time", "Constant_GDP__primary_industry", "GDP_deflator__primary_industry")
+
+data_5 <- data_5 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(Constant_GDP__primary_industry = as.numeric(Constant_GDP__primary_industry)) %>%
+  mutate(GDP_deflator__primary_industry = as.numeric(GDP_deflator__primary_industry)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+
+figure_5 <- ggplot( 
+  data = data_5,
+  aes(x=Time)
+  ) +
+  geom_line(aes(y=Constant_GDP__primary_industry, colour="Constant_GDP__primary_industry")) +
+  geom_line(aes(y=GDP_deflator__primary_industry, colour="GDP_deflator__primary_industry")) +
+  scale_colour_manual("", 
+                      breaks = c("Constant_GDP__primary_industry", "GDP_deflator__primary_industry"),
+                      values = c("darkred", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "YoY Growth rate (%)", title = "Figure: Decomposition of primary industry GDP")
+
+figure_5
+
+```
+
+
+
+The commonly used indicator to observe price changes is the agricultural product price index, which is basically the same as the GDP deflator of the primary industry. Among them, the volatile price index of livestock products, especially pork prices.
+
+```{r somePlot6, echo=FALSE}
+# figure 6
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_6 = data_GDP[,24:24]
+first_row_6 = 10
+last_row_6 = which(first_column_6 == "数据来源：东方财富Choice数据") - 3
+data_6 = data_GDP[first_row_6:last_row_6,24:26]
+colnames(data_6) <- c("Time", "GDP_deflator__primary_industry", "agricultural_product_price_index")
+
+data_6 <- data_6 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(GDP_deflator__primary_industry = as.numeric(GDP_deflator__primary_industry)) %>%
+  mutate(agricultural_product_price_index = as.numeric(agricultural_product_price_index)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+
+figure_6 <- ggplot( 
+  data = data_6,
+  aes(x=Time)
+  ) +
+  geom_line(aes(y=GDP_deflator__primary_industry, colour="GDP_deflator__primary_industry")) +
+  geom_line(aes(y=agricultural_product_price_index, colour="agricultural_product_price_index")) +
+  scale_colour_manual("", 
+                      breaks = c("GDP_deflator__primary_industry", "agricultural_product_price_index"),
+                      values = c("darkred", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "YoY Growth rate (%)", title = "Figure: Agriculture GDP deflator and price index")
+
+figure_6
+```
+
+
+
+In the secondary industry, the most important is industrial industry, accounting for about 85%, and the remaining construction industry accounts for 15%.
+NBS publishes the year-on-year and month-on-month growth rate of industrial added value of subsectors every month. Compared with industrial GDP, industrial added value only counts industrial enterprises above designated size. The next chapter will focus on this metric. 
+
+
+```{r somePlot7, echo=FALSE}
+# figure 7  不同频率的数据
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_7 = data_GDP[,28:28]
+first_row_7 = 10
+last_row_7 = which(first_column_7 == "数据来源：东方财富Choice数据") - 3
+data_7 = data_GDP[first_row_7:last_row_7,28:30]
+colnames(data_7) <- c("Time", "GDP_secondary_industry", "Industrial_value_added")
+
+data_7 <- data_7 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(GDP_secondary_industry = as.numeric(GDP_secondary_industry)) %>%
+  mutate(Industrial_value_added = as.numeric(Industrial_value_added)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+data_7$GDP_secondary_industry[data_7$GDP_secondary_industry == 0] <- NA
+
+data_7_1 <- data_7 %>%
+  drop_na()
+
+figure_7 <- ggplot() +
+  geom_line(aes(x=data_7_1$Time, y=data_7_1$GDP_secondary_industry, colour="GDP_secondary_industry")) +
+  geom_line(aes(x=data_7$Time, y=data_7$Industrial_value_added, colour="Industrial_value_added")) +
+  scale_colour_manual("", 
+                      breaks = c("GDP_secondary_industry", "Industrial_value_added"),
+                      values = c("darkred", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "YoY Growth rate (%)", title = "Figure: Secondary GDP and industrial value added")
+
+figure_7
+
+```
+
+
+The tertiary industry includes a wide range of industries, and there are no indicators similar to industrial added value.
+NBS began publishing the year-on-year growth rate of services production index since 2017, but the data range is too short and only covers market-based activities.
+If we want to forecast the trend of tertiary industry GDP, we need to split into sub-sectors to forecast them in turn, and then add them up.
+
+```{r somePlot8, echo=FALSE}
+# figure 8  不同频率的数据
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_8 = data_GDP[,32:32]
+first_row_8 = 10
+last_row_8 = which(first_column_8 == "数据来源：东方财富Choice数据") - 3
+data_8 = data_GDP[first_row_8:last_row_8,32:34]
+colnames(data_8) <- c("Time", "GDP_tertiary_industry", "Service_production_index")
+
+data_8 <- data_8 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(GDP_tertiary_industry = as.numeric(GDP_tertiary_industry)) %>%
+  mutate(Service_production_index = as.numeric(Service_production_index)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+data_8$GDP_tertiary_industry[data_8$GDP_tertiary_industry == 0] <- NA
+
+data_8_1 <- data_8 %>%
+  drop_na()
+
+figure_8 <- ggplot() +
+  geom_line(aes(x=data_8_1$Time, y=data_8_1$GDP_tertiary_industry, colour="GDP_tertiary_industry")) +
+  geom_line(aes(x=data_8$Time, y=data_8$Service_production_index, colour="Service_production_index")) +
+  scale_colour_manual("", 
+                      breaks = c("GDP_tertiary_industry", "Service_production_index"),
+                      values = c("darkred", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "YoY Growth rate (%)", title = "Figure: Tertiary GDP and service production index")
+
+figure_8
+
+```
+
+
+
+## Expenditure Method
+Under the expenditure method, GDP is divided into three parts.
+GDP= final consumption expenditure + gross capital formation + net exports of goods and services.
+At present, consumption contributes most to GDP growth, the following are by investment and net exports. 
+
+```{r somePlot9, echo=FALSE}
+# figure 9 堆积直方图
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_9 = data_GDP[,36:36]
+first_row_9 = 10
+last_row_9 = which(first_column_9 == "数据来源：东方财富Choice数据") - 3
+data_9 = data_GDP[first_row_9:last_row_9,36:39]
+colnames(data_9) <- c("Time", "consumption", "investment", "export")
+
+data_9 <- data_9[23:last_row_9,]
+data_9 <- data_9 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(consumption = as.numeric(consumption)) %>%
+  mutate(investment = as.numeric(investment)) %>%
+  mutate(export = as.numeric(export)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+  # 切记要把所有数据改成numeric形式，要不然后面画图，ggplot识别不了
+
+data_9 <- melt(data_9,id.vars='Time')
+
+figure_9 <- ggplot(data=data_9, aes(Time,value,fill=variable))+
+  geom_bar(stat="identity",position="fill", color="black")+
+  scale_fill_manual(values=c("darkred", "darkblue", "darkgreen"))+
+  labs(x = "Year",y = "Percentage", title = "Figure: Three industries in GDP")+
+  theme_minimal() +
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")
+
+figure_9
+
+```
+
+
+There are three indicators about consumption in China: 1. Final consumption expenditure in GDP, annually. 2. Household Consumption expenditure in household survey, quarterly. 3. Total retail sales of consumer goods, monthly.
+The household survey's consumption data lacks government consumption, so we usually don’t care about it.
+We pay more attention to the monthly total retail sales of consumer goods. Compared to consumption in GDP, the differences are as follows: 1. Total retail sales of social consumer goods only include retail sales of goods and catering services, excluding service consumption such as education and medical care, and virtual consumption expenditure such as the value of self-housing services. 2. some of the total retail sales of social consumer goods may be included in GDP investment, such as the purchase of construction materials by residents.
+The following chapters will focus on the discussion.
+
+```{r somePlot10, echo=FALSE}
+# figure 10  不同频率的数据
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_10 = data_GDP[,41:41]
+first_row_10 = 10
+last_row_10 = which(first_column_10 == "数据来源：东方财富Choice数据") - 3
+data_10 = data_GDP[first_row_10:last_row_10,41:43]
+colnames(data_10) <- c("Time", "GDP_consumption", "soical_retail_consumption")
+
+data_10 <- data_10 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(GDP_consumption = as.numeric(GDP_consumption)) %>%
+  mutate(soical_retail_consumption = as.numeric(soical_retail_consumption)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+data_10$GDP_consumption[data_10$GDP_consumption == 0] <- NA
+
+data_10_1 <- data_10 %>%
+  drop_na()
+
+figure_10 <- ggplot() +
+  geom_line(aes(x=data_10_1$Time, y=data_10_1$GDP_consumption, colour="GDP_consumption")) +
+  geom_line(aes(x=data_10$Time, y=data_10$soical_retail_consumption, colour="soical_retail_consumption")) +
+  scale_colour_manual("", 
+                      breaks = c("GDP_consumption", "soical_retail_consumption"),
+                      values = c("darkred", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "YoY Growth rate (%)", title = "Figure: GDP consumption and social retail consumption")
+
+figure_10
+
+```
+
+
+
+Capital formation of GDP is divided into gross fixed capital formation and inventory increase, the former accounts for more than 95%, so we usually pay attention to the former. 
+NBS will announce the completed amount of fixed asset investment every month. Compared to capital formation in GDP, the differences are as follows: 1. The completed amount of fixed asset investment only counts non-rural household projects valued larger than 5 million yuan, while the total amount of fixed capital formation has no statistical threshold. The completed amount of fixed asset investment also includes land-related investment such as land purchase fee and old building purchase fee, but the latter doesn’t’ include. 2. The latter includes intangible assets such as intellectual property, while the former does not.
+
+```{r somePlot11, echo=FALSE}
+# figure 11  不同频率的数据
+# data_GDP <- read_excel("./ChinaEconomyData/1_GDP.xlsx")
+
+first_column_11 = data_GDP[,45:45]
+first_row_11 = 10
+last_row_11 = which(first_column_11 == "数据来源：东方财富Choice数据") - 3
+data_11 = data_GDP[first_row_11:last_row_11,45:47]
+colnames(data_11) <- c("Time", "GDP_investment", "fixed_asset_investment")
+
+data_11 <- data_11 %>%
+  mutate(Time = as.numeric(Time)) %>%
+  mutate(GDP_investment = as.numeric(GDP_investment)) %>%
+  mutate(fixed_asset_investment = as.numeric(fixed_asset_investment)) %>%
+  mutate(Time = as.Date(Time, origin='1899-12-30'))  
+data_11$GDP_investment[data_11$GDP_investment == 0] <- NA
+
+data_11_1 <- data_11 %>%
+  drop_na()
+
+figure_11 <- ggplot() +
+  geom_line(aes(x=data_11_1$Time, y=data_11_1$GDP_investment, colour="GDP_investment")) +
+  geom_line(aes(x=data_11$Time, y=data_11$fixed_asset_investment, colour="fixed_asset_investment")) +
+  scale_colour_manual("", 
+                      breaks = c("GDP_investment", "fixed_asset_investment"),
+                      values = c("darkred", "darkgreen")) +
+  # theme_ipsum() +
+  theme_minimal() +
+  # theme(text = element_text(family = "Arial"))+
+  theme(plot.title = element_text(colour = "#7F3D17"),
+        axis.title = element_text(colour = "#7F3D17"),
+        panel.background = element_rect(fill='white'),
+        legend.position = "top")+
+  labs(x = "Date", y = "YoY Growth rate (%)", title = "Figure: GDP investment and fixed asset investment")
+
+figure_11
+
+```
+
+After 2017, GDP gross fixed capital formation included more intangible assets than before, which may be the reason for the divergence.
+The following chapters will focus on the discussion.
+
+
+In terms of import and export, we are concerned about two indicators: 1. The monthly balance of import and export trade according to customs statistics. 2. Monthly data on imports and exports of international trade in goods and services released by SAFE.
+Compared with net exports of GDP, the monthly balance of import and export trade only counts trade in goods, excluding trade in services, and calculates prices on CIF basis, while GDP is calculated on FOB basis.
+International trade in goods and services monthly data, including trade in goods and services, but usually published at the end of the month, which is not timely.
+We pay more attention to exports rather than imports, which indicates overseas demand.
+
+
+
+## Revision of GDP
+
+
+
+
+
